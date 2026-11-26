@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>23 паттерна GoF на TypeScript</title>
+  <meta name="description" content="Краткий справочник по 23 паттернам GoF с примерами на TypeScript и вопросами для самопроверки.">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #162548;
+      --muted: #435477;
+      --paper: #f2f5fc;
+      --rule: #d1d9eb;
+      --accent: #173fab;
+      --focus: #cf591f;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      line-height: 1.55;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-padding-top: 1.5rem; }
+    body { margin: 0; background: var(--paper); color: var(--ink); }
+    a { color: var(--accent); text-underline-offset: .18em; }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+    [hidden] { display: none !important; }
+    h1, h2, h3, p { margin: 0; }
+
+    .wrap { max-width: 77rem; margin-inline: auto; padding-inline: clamp(1rem, 4vw, 3rem); }
+    .hero {
+      background: linear-gradient(120deg, #121f47 12%, #223e83 100%);
+      border-bottom: 4px solid #9db4ff;
+      color: white;
+      padding-block: clamp(2.5rem, 7vw, 5rem);
+    }
+    .hero h1 {
+      max-width: 14ch;
+      font-size: clamp(2.5rem, 7vw, 5rem);
+      line-height: 1;
+      letter-spacing: -.055em;
+    }
+    .hero p { max-width: 52ch; margin-top: 1.25rem; color: #e0e9ff; font-size: 1.125rem; }
+    .layout {
+      display: grid;
+      grid-template-columns: 13.5rem minmax(0, 1fr);
+      align-items: start;
+      gap: clamp(1.5rem, 4vw, 3.5rem);
+      padding-block: 2rem 4rem;
+    }
+    .sidebar { position: sticky; top: 1.5rem; display: grid; gap: 1.25rem; }
+    .search label { display: block; margin-bottom: .4rem; font-weight: 700; }
+    .search input {
+      width: 100%;
+      min-height: 2.8rem;
+      padding: .55rem .75rem;
+      border: 1px solid #8796b8;
+      border-radius: .55rem;
+      color: var(--ink);
+      background: white;
+      font: inherit;
+    }
+    .search input::placeholder { color: #596889; }
+    .sidebar nav { display: grid; gap: .15rem; }
+    .sidebar nav a {
+      display: flex;
+      justify-content: space-between;
+      gap: .6rem;
+      padding: .55rem .65rem;
+      border-radius: .5rem;
+      font-size: .95rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .sidebar nav a span { font-variant-numeric: tabular-nums; color: var(--muted); }
+    .sidebar nav a:hover { background: #e2eaff; text-decoration: underline; }
+    .readme { font-size: .95rem; }
+
+    .group + .group, .comparisons { margin-top: 2.5rem; }
+    .group-heading { margin-bottom: 1rem; }
+    .group-heading h2, .comparisons h2 {
+      font-size: clamp(1.55rem, 4vw, 2.2rem);
+      letter-spacing: -.035em;
+      line-height: 1.15;
+    }
+    .group-heading p { margin-top: .35rem; color: var(--muted); }
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; align-items: start; }
+    .card {
+      padding: 1.1rem 1.2rem;
+      border: 1px solid var(--rule);
+      border-radius: .8rem;
+      background: white;
+      overflow-wrap: anywhere;
+    }
+    .card:target { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .card h3 { font-size: 1.25rem; letter-spacing: -.02em; line-height: 1.3; }
+    .translation { color: var(--muted); }
+    .intent { margin-top: .8rem; font-weight: 600; }
+    .example { margin-top: .45rem; }
+    code {
+      padding: .08em .2em;
+      border-radius: .2em;
+      background: #edf1fb;
+      color: #243a75;
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: .88em;
+    }
+    .card-footer {
+      display: grid;
+      gap: .6rem;
+      margin-top: 1rem;
+      padding-top: .75rem;
+      border-top: 1px solid var(--rule);
+      font-size: .95rem;
+    }
+    .source { justify-self: start; }
+    summary { color: var(--accent); cursor: pointer; font-weight: 600; }
+    summary:hover { text-decoration: underline; }
+    .question { margin: .5rem 0; font-weight: 600; }
+    .answer p { margin-top: .4rem; }
+    .comparisons dl { display: grid; gap: .85rem; margin: 1rem 0 0; }
+    .comparisons dl div { border-top: 1px solid var(--rule); padding-top: .7rem; }
+    .comparisons dt { font-weight: 700; }
+    .comparisons dd { margin: .25rem 0 0; }
+    #results { min-height: 1.6em; margin-top: .35rem; color: var(--muted); font-size: .875rem; }
+    #empty { padding-block: 1rem; font-weight: 600; }
+
+    @media (max-width: 65rem) {
+      .layout { grid-template-columns: 11rem minmax(0, 1fr); gap: 1.25rem; }
+      .cards { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    @media (max-width: 40rem) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+      .sidebar { position: static; gap: .65rem; }
+      .sidebar nav { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
+      .sidebar nav a { padding-inline: .1rem; justify-content: start; }
+    }
+
+    @media print {
+      .hero { color: black; background: white; padding-block: 1rem; }
+      .hero p { color: black; }
+      .layout, .cards { display: block; }
+      .sidebar, .card-footer { display: none; }
+      .card { break-inside: avoid; margin-bottom: .5rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <h1>23 паттерна GoF на TypeScript</h1>
+      <p>Найдите паттерн, вспомните его по примеру и проверьте себя вопросом.</p>
+    </div>
+  </header>
+
+  <div class="wrap layout">
+    <aside class="sidebar">
+      <form class="search" role="search" hidden>
+        <label for="search">Найти паттерн</label>
+        <input id="search" type="search" placeholder="Например, Strategy" aria-controls="catalog" autocomplete="off">
+        <p id="results" role="status"></p>
+      </form>
+      <nav aria-label="Разделы справочника">
+          <a href="#creational">Порождающие <span>5</span></a>
+          <a href="#structural">Структурные <span>7</span></a>
+          <a href="#behavioral">Поведенческие <span>11</span></a>
+          <a href="#comparisons">Похожие паттерны</a>
+      </nav>
+      <a class="readme" href="README.md">Инструкция по запуску</a>
+    </aside>
+
+    <main id="catalog">
+      <p id="empty" hidden>Совпадений нет. Попробуйте изменить запрос.</p>
+        <section class="group" id="creational" aria-labelledby="creational-title">
+          <header class="group-heading">
+            <h2 id="creational-title">Порождающие</h2>
+            <p>Как создавать объекты</p>
+          </header>
+          <div class="cards">
+            <article class="card" id="factory-method">
+              <h3>Factory Method</h3>
+              <p class="translation">Фабричный метод</p>
+              <p class="intent">Подкласс выбирает, какой объект создать для общей операции.</p>
+              <p class="example"><code>Exporter.export()</code> вызывает <code>createFormatter()</code>. <code>CsvExporter</code> возвращает форматтер CSV, <code>JsonExporter</code> возвращает форматтер JSON.</p>
+              <div class="card-footer">
+                <a class="source" href="src/creational/factory-method.ts" aria-label="Пример Factory Method на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Как добавить экспорт в XML?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Добавить <code>XmlFormatter</code> и <code>XmlExporter</code>, который возвращает его из <code>createFormatter()</code>.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="abstract-factory">
+              <h3>Abstract Factory</h3>
+              <p class="translation">Абстрактная фабрика</p>
+              <p class="intent">Одна фабрика создаёт семейство совместимых объектов.</p>
+              <p class="example"><code>renderForm()</code> берёт кнопку и поле ввода из одной <code>ThemeFactory</code>. Замена фабрики меняет тему обоих элементов.</p>
+              <div class="card-footer">
+                <a class="source" href="src/creational/abstract-factory.ts" aria-label="Пример Abstract Factory на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Почему форма получает одну фабрику темы?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Так каждый элемент создаётся из одного семейства. При смене фабрики меняются все элементы формы.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="builder">
+              <h3>Builder</h3>
+              <p class="translation">Строитель</p>
+              <p class="intent">Объект собирается по шагам. Строитель определяет форму результата.</p>
+              <p class="example"><code>buildWeeklyReport()</code> передаёт заголовок и строки строителю. Два строителя выдают текст и структурированные данные.</p>
+              <div class="card-footer">
+                <a class="source" href="src/creational/builder.ts" aria-label="Пример Builder на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Куда добавить поддержку HTML?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>В <code>HtmlReportBuilder</code>, который умеет собирать HTML из заголовка и строк. Последовательность вызовов остаётся общей.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="prototype">
+              <h3>Prototype</h3>
+              <p class="translation">Прототип</p>
+              <p class="intent">Новый объект создаётся копированием готового экземпляра.</p>
+              <p class="example"><code>ReportTemplate.clone()</code> копирует заголовок и массив разделов. Черновик можно редактировать независимо.</p>
+              <div class="card-footer">
+                <a class="source" href="src/creational/prototype.ts" aria-label="Пример Prototype на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Что случится, если клон получит исходный массив разделов?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Изменение массива через клон отразится на исходном шаблоне, потому что оба ссылаются на один массив.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="singleton">
+              <h3>Singleton</h3>
+              <p class="translation">Одиночка</p>
+              <p class="intent">Класс контролирует создание единственного общего экземпляра.</p>
+              <p class="example"><code>EventLog.getInstance()</code> при первом вызове создаёт журнал. Дальнейшие вызовы возвращают тот же объект.</p>
+              <div class="card-footer">
+                <a class="source" href="src/creational/singleton.ts" aria-label="Пример Singleton на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Как подтвердить, что два клиента получили один экземпляр?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Сравнить ссылки через <code>===</code> и проверить, что запись первого клиента видна второму.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+          </div>
+        </section>
+        <section class="group" id="structural" aria-labelledby="structural-title">
+          <header class="group-heading">
+            <h2 id="structural-title">Структурные</h2>
+            <p>Как связывать объекты</p>
+          </header>
+          <div class="cards">
+            <article class="card" id="adapter">
+              <h3>Adapter</h3>
+              <p class="translation">Адаптер</p>
+              <p class="intent">Обёртка переводит вызовы между несовместимыми интерфейсами.</p>
+              <p class="example"><code>PaymentAdapter.pay()</code> переводит рубли в копейки и вызывает <code>LegacyGateway.chargeKopecks()</code>.</p>
+              <div class="card-footer">
+                <a class="source" href="src/structural/adapter.ts" aria-label="Пример Adapter на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Кто должен знать о копейках и методе <code>chargeKopecks()</code>?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Шлюз и адаптер. Код покупки работает через <code>PaymentProcessor.pay()</code> и передаёт рубли.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="bridge">
+              <h3>Bridge</h3>
+              <p class="translation">Мост</p>
+              <p class="intent">Две стороны системы можно расширять независимо друг от друга.</p>
+              <p class="example"><code>Notification</code> хранит <code>DeliveryChannel</code>. Срочное уведомление и напоминание можно связать с любым каналом.</p>
+              <div class="card-footer">
+                <a class="source" href="src/structural/bridge.ts" aria-label="Пример Bridge на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Какие классы нужны, чтобы оба вида уведомлений отправлялись в Telegram?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Один <code>TelegramChannel</code>, реализующий <code>DeliveryChannel</code>. Любое уведомление может получить его через конструктор.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="composite" data-aliases="композит">
+              <h3>Composite</h3>
+              <p class="translation">Компоновщик</p>
+              <p class="intent">К отдельному объекту и группе объектов можно обращаться одинаково.</p>
+              <p class="example"><code>Product.total()</code> возвращает цену. <code>Box.total()</code> вызывает этот же метод у всех вложенных элементов.</p>
+              <div class="card-footer">
+                <a class="source" href="src/structural/composite.ts" aria-label="Пример Composite на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Почему код подсчёта цены работает с коробкой внутри коробки?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>И товары, и коробки реализуют <code>PricedItem</code>. Вложенная коробка сама вызывает <code>total()</code> у своих элементов.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="decorator">
+              <h3>Decorator</h3>
+              <p class="translation">Декоратор</p>
+              <p class="intent">Обёртки добавляют возможности отдельному объекту и могут сочетаться.</p>
+              <p class="example"><code>WithMilk</code> и <code>WithCinnamon</code> реализуют <code>Drink</code>, делегируют вызов напитку и добавляют свой вкус и цену.</p>
+              <div class="card-footer">
+                <a class="source" href="src/structural/decorator.ts" aria-label="Пример Decorator на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Почему <code>WithCinnamon</code> может обернуть <code>WithMilk</code>?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>У обеих добавок тот же интерфейс <code>Drink</code>, что у кофе. Каждая принимает любой <code>Drink</code>.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="facade">
+              <h3>Facade</h3>
+              <p class="translation">Фасад</p>
+              <p class="intent">Один простой метод скрывает координацию нескольких частей системы.</p>
+              <p class="example"><code>CheckoutFacade.placeOrder()</code> резервирует товар, проводит оплату и формирует чек.</p>
+              <div class="card-footer">
+                <a class="source" href="src/structural/facade.ts" aria-label="Пример Facade на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Куда поместить последовательность «резерв, оплата, чек»?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>В метод <code>CheckoutFacade.placeOrder()</code>. Вызывающий код передаёт номер товара и сумму.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="flyweight" data-aliases="легковес кэш">
+              <h3>Flyweight</h3>
+              <p class="translation">Приспособленец</p>
+              <p class="intent">Множество объектов совместно используют одинаковые данные.</p>
+              <p class="example"><code>TreeKindFactory</code> переиспользует имя вида и текстуру дерева. Каждое <code>Tree</code> хранит собственные координаты.</p>
+              <div class="card-footer">
+                <a class="source" href="src/structural/flyweight.ts" aria-label="Пример Flyweight на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Почему координаты нельзя записать в общий <code>TreeKind</code>?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Один <code>TreeKind</code> разделяют деревья в разных местах. Координаты принадлежат каждому отдельному дереву.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="proxy" data-aliases="прокси">
+              <h3>Proxy</h3>
+              <p class="translation">Заместитель</p>
+              <p class="intent">Заместитель решает, когда и как обратиться к настоящему объекту.</p>
+              <p class="example"><code>LazyImage</code> реализует <code>Image</code> и создаёт <code>LoadedImage</code> при первом вызове <code>display()</code>.</p>
+              <div class="card-footer">
+                <a class="source" href="src/structural/proxy.ts" aria-label="Пример Proxy на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Сколько раз загрузится файл при двух вызовах <code>display()</code>?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Один раз. При втором вызове прокси использует уже созданный <code>LoadedImage</code>.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+          </div>
+        </section>
+        <section class="group" id="behavioral" aria-labelledby="behavioral-title">
+          <header class="group-heading">
+            <h2 id="behavioral-title">Поведенческие</h2>
+            <p>Как распределять действия и ответственность</p>
+          </header>
+          <div class="cards">
+            <article class="card" id="chain-of-responsibility" data-aliases="цепочка ответственности">
+              <h3>Chain of Responsibility</h3>
+              <p class="translation">Цепочка обязанностей</p>
+              <p class="intent">Запрос передаётся от обработчика к обработчику, пока кто-нибудь его не примет.</p>
+              <p class="example"><code>ShippingHandler</code> берёт заявки о доставке и передаёт остальные дальше. <code>BillingHandler</code> берёт заявки об оплате.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/chain-of-responsibility.ts" aria-label="Пример Chain of Responsibility на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Что произойдёт, если ни одно звено не возьмёт заявку?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Последнее звено вернёт сообщение о том, что у заявки пока нет исполнителя.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="command">
+              <h3>Command</h3>
+              <p class="translation">Команда</p>
+              <p class="intent">Действие и его параметры хранятся в объекте, который можно передать на выполнение.</p>
+              <p class="example"><code>AppendText</code> хранит документ и добавляемую строку. <code>CommandHistory</code> запускает команду и сохраняет операцию отмены.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/command.ts" aria-label="Пример Command на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Что нужно записать при запуске <code>AppendText</code>, чтобы отмена сработала?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Исходный текст на момент выполнения. Возвращённая функция восстановит его при отмене.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="interpreter">
+              <h3>Interpreter</h3>
+              <p class="translation">Интерпретатор</p>
+              <p class="intent">Узлы простого языка умеют вычислять себя по правилам грамматики.</p>
+              <p class="example"><code>Literal</code>, <code>Variable</code> и <code>Sum</code> образуют дерево выражения. <code>Sum.interpret()</code> вычисляет оба дочерних узла.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/interpreter.ts" aria-label="Пример Interpreter на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Как одно дерево выражения даёт разные результаты?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p><code>Variable.interpret()</code> читает значение из переданного контекста. Для другого результата достаточно передать другой набор переменных.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="iterator">
+              <h3>Iterator</h3>
+              <p class="translation">Итератор</p>
+              <p class="intent">Коллекцию можно обходить последовательно, не зная, как она хранит элементы.</p>
+              <p class="example">Генератор в <code>Playlist[Symbol.iterator]()</code> отдаёт треки из нескольких групп одной последовательностью.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/iterator.ts" aria-label="Пример Iterator на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Где хранится позиция двух одновременно работающих обходов?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Каждый вызов <code>Symbol.iterator</code> создаёт свой генератор. У каждого генератора своя позиция.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="mediator">
+              <h3>Mediator</h3>
+              <p class="translation">Посредник</p>
+              <p class="intent">Объект-посредник задаёт правила взаимодействия участников.</p>
+              <p class="example"><code>Member.send()</code> передаёт сообщение в <code>ChatRoom</code>. Комната находит адресата и вызывает у него <code>receive()</code>.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/mediator.ts" aria-label="Пример Mediator на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Куда добавить проверку, разрешено ли отправлять сообщение адресату?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>В <code>ChatRoom</code>, поскольку именно комната управляет доставкой сообщений между участниками.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="memento" data-aliases="хранитель памятка">
+              <h3>Memento</h3>
+              <p class="translation">Снимок</p>
+              <p class="intent">Объект сохраняет своё состояние для последующего восстановления.</p>
+              <p class="example"><code>Editor</code> создаёт и восстанавливает снимки. <code>EditorHistory</code> хранит их между правками.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/memento.ts" aria-label="Пример Memento на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Кто читает содержимое снимка при отмене правки?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p><code>Editor.restore()</code> читает снимок и обновляет своё состояние. История лишь передаёт редактору последний снимок.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="observer" data-aliases="паблиш подписчик событие">
+              <h3>Observer</h3>
+              <p class="translation">Наблюдатель</p>
+              <p class="intent">Источник сообщает о событии всем текущим подписчикам.</p>
+              <p class="example"><code>Thermometer.report()</code> вызывает функции экрана и вентиляции. Каждая подписка возвращает функцию отписки.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/observer.ts" aria-label="Пример Observer на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Кто получит новую температуру после отписки вентиляции?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Только экран. Функция отписки удалила обработчик вентиляции из набора подписчиков.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="state">
+              <h3>State</h3>
+              <p class="translation">Состояние</p>
+              <p class="intent">Текущее состояние определяет поведение объекта и его переходы.</p>
+              <p class="example"><code>Publication.advance()</code> передаёт управление текущему <code>PublicationState</code>, который возвращает следующий этап.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/state.ts" aria-label="Пример State на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Что произойдёт, если вызвать <code>advance()</code> у опубликованной статьи?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p><code>Published.advance()</code> вернёт себя. Статья останется опубликованной.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="strategy">
+              <h3>Strategy</h3>
+              <p class="translation">Стратегия</p>
+              <p class="intent">Вызывающий код выбирает взаимозаменяемый алгоритм.</p>
+              <p class="example"><code>Basket.total()</code> получает <code>pickup</code> или <code>courier</code> и делегирует функции расчёт стоимости доставки.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/strategy.ts" aria-label="Пример Strategy на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Что добавить для расчёта доставки в пункт выдачи?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Ещё одну функцию типа <code>ShippingStrategy</code>. Корзина вызовет её так же, как остальные стратегии.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="template-method">
+              <h3>Template Method</h3>
+              <p class="translation">Шаблонный метод</p>
+              <p class="intent">Базовый класс сохраняет порядок алгоритма, подклассы определяют отдельные шаги.</p>
+              <p class="example"><code>SalesReport.generate()</code> считает итог и собирает отчёт. Подклассы форматируют заголовок и строки.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/template-method.ts" aria-label="Пример Template Method на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Как добавить третий формат с тем же расчётом итога?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Создать подкласс <code>SalesReport</code> и реализовать <code>title()</code> и <code>formatLine()</code>. Сборку выполняет унаследованный <code>generate()</code>.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+            <article class="card" id="visitor">
+              <h3>Visitor</h3>
+              <p class="translation">Посетитель</p>
+              <p class="intent">К набору типов можно добавлять целые операции через новых посетителей.</p>
+              <p class="example"><code>Circle.accept()</code> вызывает <code>visitCircle()</code>, а <code>Rectangle.accept()</code> — <code>visitRectangle()</code>. У каждого посетителя своя операция.</p>
+              <div class="card-footer">
+                <a class="source" href="src/behavioral/visitor.ts" aria-label="Пример Visitor на TypeScript">Пример .ts</a>
+                <details>
+                  <summary>Проверить себя</summary>
+                  <p class="question">Как добавить расчёт периметра для обеих фигур?</p>
+                  <details class="answer">
+                    <summary>Показать ответ</summary>
+                    <p>Реализовать <code>PerimeterVisitor</code> с методами <code>visitCircle()</code> и <code>visitRectangle()</code>. Фигуры передадут себя нужному методу.</p>
+                  </details>
+                </details>
+              </div>
+            </article>
+          </div>
+        </section>
+
+      <section class="comparisons" id="comparisons" aria-labelledby="comparisons-title">
+        <h2 id="comparisons-title">Как различать похожие паттерны</h2>
+        <dl>
+          <div>
+            <dt>Factory Method и Abstract Factory</dt>
+            <dd>Factory Method отдаёт выбор отдельного продукта подклассу. Abstract Factory выдаёт набор совместимых продуктов через один интерфейс.</dd>
+          </div>
+          <div>
+            <dt>Builder и Template Method</dt>
+            <dd>Builder отделяет общие шаги создания от представления результата. Template Method фиксирует порядок алгоритма в базовом классе и позволяет подклассам переопределять его шаги.</dd>
+          </div>
+          <div>
+            <dt>Adapter, Decorator и Proxy</dt>
+            <dd>Adapter переводит между интерфейсами. Decorator добавляет поведение и сохраняет интерфейс. Proxy сохраняет интерфейс и управляет доступом к объекту.</dd>
+          </div>
+          <div>
+            <dt>State и Strategy</dt>
+            <dd>State связывает поведение с текущим этапом и его переходами. Strategy отдаёт выбор алгоритма клиенту.</dd>
+          </div>
+          <div>
+            <dt>Observer и Mediator</dt>
+            <dd>Observer рассылает событие подписчикам. Mediator ведёт взаимодействие участников по правилам.</dd>
+          </div>
+          <div>
+            <dt>Command и Memento</dt>
+            <dd>Command представляет действие. Memento хранит состояние. В истории действий команда может использовать снимок для отмены.</dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const form = document.querySelector(".search");
+    const input = document.querySelector("#search");
+    const results = document.querySelector("#results");
+    const empty = document.querySelector("#empty");
+    const groups = [...document.querySelectorAll(".group")];
+    const comparisons = document.querySelector("#comparisons");
+
+    const normalize = value => value.toLowerCase().replaceAll("ё", "е").replaceAll("-", " ");
+    const cards = [...document.querySelectorAll(".card")].map(card => ({
+      element: card,
+      keywords: normalize([
+        card.querySelector("h3").textContent,
+        card.querySelector(".translation").textContent,
+        card.querySelector(".intent").textContent,
+        card.dataset.aliases ?? "",
+      ].join(" ")),
+    }));
+
+    function filter() {
+      const terms = normalize(input.value).trim().split(/\s+/).filter(Boolean);
+      let shown = 0;
+
+      for (const { element, keywords } of cards) {
+        element.hidden = !terms.every(term => keywords.includes(term));
+        shown += Number(!element.hidden);
+      }
+
+      for (const group of groups) {
+        group.hidden = !group.querySelector(".card:not([hidden])");
+      }
+
+      comparisons.hidden = terms.length > 0;
+      empty.hidden = shown > 0;
+      results.textContent = terms.length ? `Найдено: ${shown} из ${cards.length}` : "";
+    }
+
+    form.addEventListener("submit", event => event.preventDefault());
+    input.addEventListener("input", filter);
+    document.querySelector(".sidebar nav").addEventListener("click", event => {
+      const link = event.target.closest("a");
+      if (link && document.getElementById(link.hash.slice(1)).hidden) {
+        input.value = "";
+        filter();
+      }
+    });
+
+    filter();
+    form.hidden = false;
+  </script>
+</body>
+</html>
